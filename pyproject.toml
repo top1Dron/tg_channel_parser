@@ -27,6 +27,8 @@ openai = "^2.28.0"  # Compatible with local LLM servers (Ollama, vLLM)
 
 # Frontend / Asset Management
 django-compressor = "^4.6.0"
+loguru = "^0.7.3"
+python-jose = "^3.5.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^26.3.1"

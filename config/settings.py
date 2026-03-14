@@ -12,7 +12,11 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 from dotenv import load_dotenv
+import logging
 import os
+import sys
+
+from loguru import logger
 
 load_dotenv()  # reads variables from a .env file and sets them in os.environ
 
@@ -27,9 +31,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("true", "1", "t")
 
-ALLOWED_HOSTS = []
+# set allowed hosts for eveything
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -41,6 +46,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "core",
+    "tg_messages",
 ]
 
 MIDDLEWARE = [
@@ -75,15 +82,16 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+# -----------------------------------------------------------------
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv("POSTGRES_ENGINE"),
-        'NAME': os.getenv("POSTGRES_DATABASE"),
-        'USER': os.getenv("POSTGRES_USER"),
-        'PASSWORD': os.getenv("POSTGRES_PASSWORD"),
-        'HOST': os.getenv("POSTGRES_HOST"),
-        'PORT': os.getenv("POSTGRES_PORT"),
+        'ENGINE': os.getenv("POSTGRES_ENGINE", 'django.db.backends.postgresql'),
+        'NAME': os.getenv("POSTGRES_DATABASE", 'your_database_name'),
+        'USER': os.getenv("POSTGRES_USER", 'your_user'),
+        'PASSWORD': os.getenv("POSTGRES_PASSWORD", 'your_password'),
+        'HOST': os.getenv("POSTGRES_HOST", 'localhost'),
+        'PORT': os.getenv("POSTGRES_PORT", '5432'),
     }
 }
 
@@ -123,3 +131,68 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = "static/"
+
+
+# Telegram API credentials (set these in your .env file)
+# -----------------------------------------------------------------
+TELEGRAM_API_ID = os.getenv("TELEGRAM_API_ID")
+TELEGRAM_API_HASH = os.getenv("TELEGRAM_API_HASH")
+TELEGRAM_SESSION_NAME = os.getenv("TELEGRAM_SESSION_NAME", "telethon_session")  # Default session name if not set
+
+# Logging configuration for both standard logging and Loguru
+# -----------------------------------------------------------------
+# Add this section at the end of your config/settings.py file, or in a separate settings file that is imported here
+
+# 1. Simple Loguru Sink Setup
+logger.remove()  # Clear default handlers
+logger.add(
+    sys.stderr, 
+    format="{time:YYYY-MM-DD HH:mm:ss.SSS} [{level}] {module}.{function}: {message}", 
+    level="INFO",
+    colorize=True
+)
+
+
+# 2. Intercept Handler to bridge standard logging -> Loguru
+class InterceptHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        frame, depth = logging.currentframe(), 2
+        while frame.f_code.co_filename == logging.__file__:
+            frame = frame.f_back
+            depth += 1
+        logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
+
+# 3. Minimalist Django Logging Config
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'loguru': {
+            'class': 'config.settings.InterceptHandler', # Point to where this class lives
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['loguru'],
+            'level': 'INFO',
+        },
+        'llm_client': {
+            'handlers': ['loguru'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+# 4. Final catch-all for Telethon, FastAPI, and other libs
+logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
+
+
+# LLM configuration
+# -----------------------------------------------------------------
+LLM_MODEL_NAME = os.getenv("LLM_MODEL_NAME", "google/gemma-3-12b")
+LLM_API_URL = os.getenv("LLM_MODEL_API", "http://localhost:1234/v1")  # Point to your local LLM server

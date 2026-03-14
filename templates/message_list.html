@@ -1,0 +1,41 @@
+{% load static %} 
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Telegram Messages</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Telegram Messages</h1>
+
+    <ul>
+        {% for message in messages %} 
+            <li>
+                {{ message.text }} - Year: {{ message.effective_year }}
+                <iframe src="https://t.me/{{ message.channel_id|stringformat:'d' }}/embed?start=0" width="320" height="240" frameborder="0"></iframe>
+                <button class="check-button" data-message-id="{{ message.message_id }}">Check</button>
+            </li>
+        {% endfor %} 
+    </ul>
+
+    <script>
+        $(document).ready(function() {
+            $('.check-button').click(function() {
+                var messageId = $(this).data('message-id');
+                $.ajax({
+                    url: '/api/messages/' + messageId + '/check/',
+                    type: 'POST',
+                    success: function(response) {
+                        console.log('Message checked:', response);
+                        // Optionally update the UI to reflect the check status
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error checking message:', error);
+                        alert('An error occurred while checking the message.');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

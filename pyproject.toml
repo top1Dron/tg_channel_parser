@@ -1,0 +1,37 @@
+[project]
+name = "banderstat-parser"
+version = "0.1.0"
+description = "Unified FastAPI and Django project for Telegram TV show tracking"
+authors = [
+    {name = "andrew.m",email = "andrew.moshko@gmail.com"}
+]
+readme = "README.md"
+[tool.poetry.dependencies]
+python = "^3.14"
+# Web Frameworks
+django = "^6.0.3"
+fastapi = {extras = ["all"], version = "^0.135.1"}
+uvicorn = {extras = ["standard"], version = "^0.41.0"}
+
+# Database
+psycopg = "^3.3.3"
+redis = "^7.3.0"
+
+# Telegram & Scrapping
+telethon = "^1.42.0"
+python-dotenv = "^1.2.2"
+
+# LLM & API Clients
+httpx = "^0.28.1"
+openai = "^2.28.0"  # Compatible with local LLM servers (Ollama, vLLM)
+
+# Frontend / Asset Management
+django-compressor = "^4.6.0"
+
+[tool.poetry.group.dev.dependencies]
+black = "^26.3.1"
+pytest = "^9.0.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
